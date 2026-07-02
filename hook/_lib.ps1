@@ -80,16 +80,53 @@ function Invoke-NotifierSound([string]$Path, [string]$Fallback) {
 }
 
 # Show a Windows balloon notification (title is always "Claude Notifier").
+# Only shows when VS Code is not focused (avoid duplicate with in-app notification).
 function Show-NotifierNotification([string]$Message) {
     try {
+        # Check if VS Code is the foreground window
+        if (Test-VSCodeFocused) { return }
+
         Add-Type -AssemblyName System.Windows.Forms
         $n = New-Object System.Windows.Forms.NotifyIcon
         $n.Icon = [System.Drawing.SystemIcons]::Information
         $n.Visible = $true
-        $n.ShowBalloonTip(3000, 'Claude Notifier', $Message, [System.Windows.Forms.ToolTipIcon]::None)
-        Start-Sleep -Milliseconds 500
+        $n.ShowBalloonTip(10000, 'Claude Notifier', $Message, [System.Windows.Forms.ToolTipIcon]::None)
+        Start-Sleep -Milliseconds 10000
         $n.Dispose()
     } catch {}
+}
+
+# Returns $true if VS Code is the foreground window.
+# Uses Win32 API to get the foreground window and checks if its process is Code.exe.
+function Test-VSCodeFocused() {
+    try {
+        Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class ForegroundWindow {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+}
+"@
+
+        $hwnd = [ForegroundWindow]::GetForegroundWindow()
+        if ($hwnd -eq [IntPtr]::Zero) { return $false }
+
+        $processId = [uint32]0
+        [ForegroundWindow]::GetWindowThreadProcessId($hwnd, [ref]$processId) | Out-Null
+
+        $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+        if (-not $process) { return $false }
+
+        # Check if the process is VS Code (Code.exe or code.exe)
+        $processName = $process.ProcessName.ToLower()
+        return ($processName -eq 'code' -or $processName -eq 'code - oss')
+    } catch {
+        return $false
+    }
 }
 
 # Write a signal for the extension.

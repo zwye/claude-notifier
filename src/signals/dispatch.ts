@@ -227,7 +227,15 @@ function showNotification(reason: string, cwd: string): void {
           }
         });
       if (!isRemote) {
-        showLocalNotification("Claude has finished the task.", cwd);
+        // Only show Windows balloon when VS Code is not focused (avoid duplicate)
+        // Use try/catch for backward compatibility with VS Code < 1.87
+        let isFocused = false;
+        try {
+          isFocused = !!(vscode.window.state && vscode.window.state.focused);
+        } catch {}
+        if (!isFocused) {
+          showLocalNotification("Claude has finished the task.", cwd);
+        }
       }
     }
   } else if (reason === "subagent_done") {
