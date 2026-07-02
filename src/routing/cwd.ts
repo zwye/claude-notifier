@@ -25,9 +25,7 @@ export function writeOwnPidFile(): void {
 
 export function cwdMatchesFolder(cwd: string, folder: string): boolean {
   if (!cwd || !folder) return false;
-  // On Windows, paths are case-insensitive — normalize to lowercase for
-  // parity with Test-CwdInsideFolder in hook/_lib.ps1 and cwdInsideFolder
-  // in hook/_lib/active.js.
+  // On Windows, paths are case-insensitive
   const isWindows = process.platform === "win32";
   const normalize = (p: string) => (isWindows ? p.toLowerCase() : p);
   const normCwd = normalize(cwd);
