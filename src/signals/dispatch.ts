@@ -13,6 +13,7 @@ import {
   getSoundVolume,
   getMinTaskDurationThreshold,
   getRemoteAudio,
+  getBalloonOnlyWhenUnfocused,
 } from "../settings/sync";
 import { playLocalSound } from "../notifications/sound";
 import { showLocalNotification } from "../notifications/local";
@@ -227,13 +228,19 @@ function showNotification(reason: string, cwd: string): void {
           }
         });
       if (!isRemote) {
-        // Only show Windows balloon when VS Code is not focused (avoid duplicate)
-        // Use try/catch for backward compatibility with VS Code < 1.87
-        let isFocused = false;
-        try {
-          isFocused = !!(vscode.window.state && vscode.window.state.focused);
-        } catch {}
-        if (!isFocused) {
+        // Check if we should only show balloon when VS Code is not focused
+        const onlyWhenUnfocused = getBalloonOnlyWhenUnfocused();
+        if (onlyWhenUnfocused) {
+          // Only show Windows balloon when VS Code is not focused (avoid duplicate)
+          // Use try/catch for backward compatibility with VS Code < 1.87
+          let isFocused = false;
+          try {
+            isFocused = !!(vscode.window.state && vscode.window.state.focused);
+          } catch {}
+          if (!isFocused) {
+            showLocalNotification("Claude has finished the task.", cwd);
+          }
+        } else {
           showLocalNotification("Claude has finished the task.", cwd);
         }
       }

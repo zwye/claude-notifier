@@ -8,6 +8,10 @@ export const DEFAULT_VOLUME = 1;
 export const MIN_VOLUME = 0;
 export const MAX_VOLUME = 2;
 
+export const DEFAULT_BALLOON_DURATION = 3;
+export const MIN_BALLOON_DURATION = 1;
+export const MAX_BALLOON_DURATION = 30;
+
 export function clampVolume(v: number | undefined): number {
   if (v === undefined || !Number.isFinite(v)) return DEFAULT_VOLUME;
   if (v < MIN_VOLUME) return MIN_VOLUME;
@@ -39,6 +43,12 @@ export function clampThreshold(v: number | undefined): number {
   return v;
 }
 
+export function clampBalloonDuration(v: number | undefined): number {
+  if (v === undefined || !Number.isFinite(v) || v < MIN_BALLOON_DURATION) return DEFAULT_BALLOON_DURATION;
+  if (v > MAX_BALLOON_DURATION) return MAX_BALLOON_DURATION;
+  return v;
+}
+
 export function syncConfig(): void {
   const cfg = vscode.workspace.getConfiguration("claudeNotifier");
   const events = Object.fromEntries(
@@ -57,6 +67,8 @@ export function syncConfig(): void {
       cfg.get<number>("minTaskDurationThreshold", DEFAULT_THRESHOLD)
     ),
     suppressSubagentInteractions: cfg.get<boolean>("suppressSubagentInteractions", true),
+    balloonDuration: clampBalloonDuration(cfg.get<number>("balloonDuration", DEFAULT_BALLOON_DURATION)),
+    balloonOnlyWhenUnfocused: cfg.get<boolean>("balloonOnlyWhenUnfocused", true),
     remoteAudio: {
       enabled: cfg.get<boolean>("remoteAudio.enabled", false),
       port: cfg.get<number>("remoteAudio.port", DEFAULT_REMOTE_AUDIO_PORT),
@@ -99,5 +111,23 @@ export function getMinTaskDurationThreshold(): number {
     return clampThreshold(config.minTaskDurationThreshold ?? DEFAULT_THRESHOLD);
   } catch {
     return DEFAULT_THRESHOLD;
+  }
+}
+
+export function getBalloonDuration(): number {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+    return clampBalloonDuration(config.balloonDuration ?? DEFAULT_BALLOON_DURATION);
+  } catch {
+    return DEFAULT_BALLOON_DURATION;
+  }
+}
+
+export function getBalloonOnlyWhenUnfocused(): boolean {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+    return config.balloonOnlyWhenUnfocused !== false;
+  } catch {
+    return true;
   }
 }

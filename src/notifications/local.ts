@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { exec } from "child_process";
 import { IS_WIN, IS_MAC, FOCUS_SIGNAL_FILE } from "../paths";
 import { getTerminalNotifierPath, getCodeCliPath } from "./terminal-notifier";
+import { getBalloonDuration } from "../settings/sync";
 
 function shellQuote(s: string): string {
   return `'${s.replace(/'/g, `'\\''`)}'`;
@@ -10,10 +11,12 @@ function shellQuote(s: string): string {
 export function showLocalNotification(message: string, cwd?: string): void {
   if (IS_WIN) {
     const safeMsg = message.replace(/'/g, "''");
-    const ps = `Add-Type -AssemblyName System.Windows.Forms; $n=New-Object System.Windows.Forms.NotifyIcon; $n.Icon=[System.Drawing.SystemIcons]::Information; $n.Visible=$true; $n.ShowBalloonTip(10000,'Claude Notifier','${safeMsg}',[System.Windows.Forms.ToolTipIcon]::None); Start-Sleep -m 10000; $n.Dispose()`;
+    const durationSec = getBalloonDuration();
+    const durationMs = durationSec * 1000;
+    const ps = `Add-Type -AssemblyName System.Windows.Forms; $n=New-Object System.Windows.Forms.NotifyIcon; $n.Icon=[System.Drawing.SystemIcons]::Information; $n.Visible=$true; $n.ShowBalloonTip(${durationMs},'Claude Notifier','${safeMsg}',[System.Windows.Forms.ToolTipIcon]::None); Start-Sleep -m ${durationMs}; $n.Dispose()`;
     exec(
       `powershell -NoProfile -NonInteractive -EncodedCommand ${Buffer.from(ps, "utf16le").toString("base64")}`,
-      { timeout: 15000 }
+      { timeout: durationMs + 5000 }
     );
   } else if (IS_MAC && getTerminalNotifierPath()) {
     const tn = getTerminalNotifierPath()!;

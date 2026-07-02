@@ -282,6 +282,18 @@
           "minimum": 1,
           "maximum": 65535,
           "markdownDescription": "Loopback port the local `cn-daemon` listens on and the reverse forward targets (`RemoteForward <port> localhost:<port>`). Only change this if 47291 conflicts with another service."
+        },
+        "claudeNotifier.balloonDuration": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Duration in seconds for Windows balloon notifications. Longer duration gives more time to read the notification. Only affects Windows systems."
+        },
+        "claudeNotifier.balloonOnlyWhenUnfocused": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, Windows balloon notifications only appear when VS Code is not in the foreground. This avoids duplicate notifications (VS Code popup + Windows balloon). Only affects Windows systems."
         }
       }
     }

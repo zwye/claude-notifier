@@ -80,18 +80,24 @@ function Invoke-NotifierSound([string]$Path, [string]$Fallback) {
 }
 
 # Show a Windows balloon notification (title is always "Claude Notifier").
-# Only shows when VS Code is not focused (avoid duplicate with in-app notification).
+# Respects balloonDuration and balloonOnlyWhenUnfocused settings from config.
 function Show-NotifierNotification([string]$Message) {
     try {
-        # Check if VS Code is the foreground window
-        if (Test-VSCodeFocused) { return }
+        # Read config settings
+        $conf = Read-NotifierConfig
+        $balloonDuration = if ($conf -and $conf.balloonDuration) { [int]$conf.balloonDuration } else { 3 }
+        $onlyWhenUnfocused = if ($conf -and $null -ne $conf.balloonOnlyWhenUnfocused) { [bool]$conf.balloonOnlyWhenUnfocused } else { $true }
 
+        # Check focus setting
+        if ($onlyWhenUnfocused -and (Test-VSCodeFocused)) { return }
+
+        $durationMs = $balloonDuration * 1000
         Add-Type -AssemblyName System.Windows.Forms
         $n = New-Object System.Windows.Forms.NotifyIcon
         $n.Icon = [System.Drawing.SystemIcons]::Information
         $n.Visible = $true
-        $n.ShowBalloonTip(10000, 'Claude Notifier', $Message, [System.Windows.Forms.ToolTipIcon]::None)
-        Start-Sleep -Milliseconds 10000
+        $n.ShowBalloonTip($durationMs, 'Claude Notifier', $Message, [System.Windows.Forms.ToolTipIcon]::None)
+        Start-Sleep -Milliseconds $durationMs
         $n.Dispose()
     } catch {}
 }
